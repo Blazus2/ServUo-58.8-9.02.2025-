@@ -1,0 +1,54 @@
+PODSTAWOWE INFORMACJE:
+-Podstawowym narzêdziem Zbierania zió³ jest "Sierp" zdefiniowany jako BaseSword
+-Postaæ musi konicznie trzymaæ "Sierp" w rêku
+-Postaæ nie mo¿e zcinaæ na wierzchowcu
+-Postaæ wykonuje animacje poprzez 2-klik na Sierp i targetem na odpowiedni "Krzaczek"
+-Podczas œcinania postaæ mo¿e siê poruszyæ i przerywa akcje dziêki funkcji "IsHarvesting" w PlayerMobile.
+-Ka¿dy krzaczek zió³ maga ma losow¹ iloœæ zciêæ (2-6 UsesRemaining) - KrwawyMech, Czosnek, Pokrzyk, Mandragora, Zeñ-szeñ
+-Ka¿dy krzaczek ma losow¹ iloœæ zciêæ (2-6 UsesRemaining)
+
+SYSTEMOWE:
+Zio³olecznictwo 2.0\KrzaczkiZió³-Grzyby-KrzaczkiZió³Maga-ZciêteZio³a-Sierp:
+Od teraz Krzaczki zió³ stosuj¹ metode public dla iloœci u¿yæ na nich sierpa:
+
+- Krzaczki zió³  maj¹ angielskie nazwy z przedrostkiem "Bush" np. "BushSage"
+- Zciête zio³a maja angielskie nazyw a oto lista zciêtych zió³:
+- Do NPC odpowiedzialnych za naukê podstaw Zielarstwa nale¿¹: Alchemik, Piekarz, Zielarz
+
+ZIO£A: (nie podœwietlane grafiki)
+Sage, Acacia, Anise, Basil, Laurel, Chamomile, Caraway, Coriander, 
+Cinnamon, Carnation, Resin, Coriander Cove, Dill, Dragon Blood Herb, Olibanum, Lavender, 
+Marjoram, Aconite, Mint, Common Mugwort, Mustard, Myrrh, Olive, Oregano, Iris, 
+Patchouli, Pepper, Wild Rose, Rosemary, Saffron, Sandalwood, Slippery Elm, Thyme, 
+Valeriane, Willow Branches
+
+ZIO£A MAGA: (podœwietlane grafiki)
+Garlic Bush, Ginseng Bush, BloodyMoss Bush, Mandrake Bush, Nightshade Bush
+
+GRZYBY: (podœwietlane grafiki)
+do tego po 4 rodzaje grzybów jadalne , lekko truj¹ce, silnie truj¹ce i œmiertelnie truj¹ce
+
+POZASYSTEMOWE:
+
+\Scripts\BaseWeapon.cs:
+linia 4157-4160
+            if (this is ITool || this is Sierp)
+            {
+                m_UsesRemaining = Utility.RandomMinMax(25, 75);
+            }
+
+PRZYROST SKILLA ZIELARSTWO:
+Garlic Bush - 0-50
+Mandrake Bush - 50-60
+BloodyMoss Bush - 60-70
+Ginseng Bush - 70-80
+Nightshade Bush - 80-90
+Reszta: 90-100
+
+WYMAGANIA ZIELARSTWA minimalne:
+Garlic - 0
+Mandrake - 50
+BloodyMoss - 60
+Ginseng - 70
+Nightshade - 80
+Reszta: 90
