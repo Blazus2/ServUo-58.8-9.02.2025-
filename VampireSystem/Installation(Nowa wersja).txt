@@ -1,0 +1,317 @@
+Zmodyfikowana wersja Scripts\W£ASNE\VampireSystem\VampireSystem.cs - ustawieñ ogólnych
+In PlayerMobile.cs (Scripts/Mobiles)
+----------------------------------------------------------------------------------------------------------
+[PO]
+		private int m_Profession;
+----------------------------------------------------------------------------------------------------------
+[DODAJ]
+//Wampir-Wilko³ak
+		private bool m_IsVampire;
+		
+		[CommandProperty( AccessLevel.GameMaster )]
+		public bool IsVampire
+		{
+			get { return m_IsVampire; }
+			set { m_IsVampire = value; }
+		}
+		
+		private bool m_IsWerewolf;
+		
+		[CommandProperty( AccessLevel.GameMaster )]
+		public bool IsWerewolf
+		{
+			get { return m_IsWerewolf; }
+			set { m_IsWerewolf = value; }
+		}
+		
+		private bool m_IsInVampireForm;
+		
+		[CommandProperty( AccessLevel.GameMaster )]
+		public bool IsInVampireForm
+		{
+			get { return m_IsInVampireForm; }
+			set { m_IsInVampireForm = value; }
+		}
+ 
+  		private bool m_IsInWerewolfForm;
+  
+  		[CommandProperty( AccessLevel.GameMaster )]
+  		public bool IsInWerewolfForm
+  		{
+  			get { return m_IsInWerewolfForm; }
+  			set { m_IsInWerewolfForm = value; }
+		}
+ 
+        private DateTime m_VampireBiteTime;
+        
+        [CommandProperty(AccessLevel.GameMaster)]
+        public TimeSpan VampireBiteTime
+        {
+            get
+            {
+                TimeSpan ts = m_VampireBiteTime - DateTime.Now;
+
+                if (ts < TimeSpan.Zero)
+                    ts = TimeSpan.Zero;
+
+                return ts;
+            }
+            set
+            {
+                try { m_VampireBiteTime = DateTime.Now + value; }
+                catch { }
+            }
+        }        
+//Wampir-Wilko³ak
+-------------------------------------------------------------------------------------------------------------
+[PO]
+			if( Core.ML && this.Race == Race.Elf && type == ResistanceType.Energy )
+				max += 5; //Intended to go after the 60 max from curse
+-----------------------------------------------------------------------------------------------------------
+[DODAJ]
+//Wampir
+            if (this.IsVampire && 50 < max && type == ResistanceType.Fire)
+                max = 50;
+//Wampir
+---------------------------------------------------------------------------------------------------------
+[PO]
+		private static void OnLogin( LoginEventArgs e )
+		{
+			Mobile from = e.Mobile;
+----------------------------------------------------------------------------------------------------------
+[DODAJ]
+
+//Wampir-Wilko³ak
+            PlayerMobile player = e.Mobile as PlayerMobile;
+            if (player.IsVampire && VampireSystem.Vampires)
+            {
+                if (VampireSystem.ShowTitles)
+				{
+					player.Title = "Wampir";
+				}
+                player.AddStatMod(new StatMod(StatType.Str, "Vampire Str Bonus", VampireSystem.VampireStr, TimeSpan.Zero));
+                player.AddStatMod(new StatMod(StatType.Dex, "Vampire Dex Bonus", VampireSystem.VampireDex, TimeSpan.Zero));
+                player.AddStatMod(new StatMod(StatType.Int, "Vampire Int Bonus", VampireSystem.VampireInt, TimeSpan.Zero));                
+            }  
+
+			if (player.IsWerewolf && player.IsInWerewolfForm && VampireSystem.Werewolves)
+            {
+                if (VampireSystem.ShowTitles)
+				{
+					player.Title = "Wilko³ak";
+				}
+                player.AddStatMod(new StatMod(StatType.Str, "Werewolf Str Bonus", VampireSystem.WerewolfStr, TimeSpan.Zero));
+                player.AddStatMod(new StatMod(StatType.Dex, "Werewolf Dex Bonus", VampireSystem.WerewolfDex, TimeSpan.Zero));
+                player.AddStatMod(new StatMod(StatType.Int, "Werewolf Int Bonus", VampireSystem.WerewolfInt, TimeSpan.Zero));                
+            }  			
+//Wampir-Wilko³ak
+-------------------------------------------------------------------------------------------------------------------------
+[PO]
+		private static void OnLogout( LogoutEventArgs e )
+		{
+-------------------------------------------------------------------------------------------------------------------------
+[DODAJ]
+
+//Wampir-Wilko³ak
+            Mobile from = e.Mobile;
+            PlayerMobile player = e.Mobile as PlayerMobile;
+			
+			if (player.IsInVampireForm)                
+			{    
+				player.Send(SpeedControl.Disable);
+				player.IsInVampireForm = false;
+			}
+
+			if (player.IsInWerewolfForm)                
+			{    
+				player.Send(SpeedControl.Disable);
+				player.IsInWerewolfForm = false;
+			}
+			
+			    player.BodyMod = 0;
+			    player.NameMod = null;
+			    player.Title = null;
+			    player.RemoveStatMod("Vampire Str Bonus");
+			    player.RemoveStatMod("Vampire Dex Bonus");
+			    player.RemoveStatMod("Vampire Int Bonus"); 
+			player.RemoveStatMod("Werewolf Str Bonus");
+			player.RemoveStatMod("Werewolf Dex Bonus");
+			player.RemoveStatMod("Werewolf Int Bonus");			
+
+		if (!VampireSystem.Vampires) 
+		{			
+		player.IsVampire = false;
+		}
+		if (!VampireSystem.Werewolves) 
+		{			
+		player.IsWerewolf = false;
+		}
+ //Wampir-Wilko³ak
+---------------------------------------------------------------------------------------
+[PO]
+			EndAction(typeof(PolymorphSpell));
+			EndAction(typeof(IncognitoSpell));
+
+			MeerMage.StopEffect(this, false);
+
+			BaseEscort.DeleteEscort(this);
+----------------------------------------------------------------------------------------------
+[DODAJ]
+////Wampir	
+			if (this.IsInVampireForm)                
+			{    
+				this.IsInVampireForm = false;
+				if (TransformationSpellHelper.UnderTransformation(this))
+				{
+				    TransformationSpellHelper.RemoveContext(this, true);
+				}
+			}
+////Wampir
+-------------------------------------------------------------------------------------
+[PO]
+        public override ApplyPoisonResult ApplyPoison(Mobile from, Poison poison)
+	{
+----------------------------------------------------------------------------------------
+[DODAJ]
+////Wampir
+			if ( IsVampire == true )
+			{
+			PrivateOverheadMessage(MessageType.Regular, 0x3F, 1053092, this.NetState); // * You feel yourself resisting the effects of the poison *
+			return ApplyPoisonResult.Immune;
+			}
+////Wampir
+--------------------------------------------------------------------------------------------------------
+[DESERIALIZE]
+//Wampir-Wilko³ak
+			m_IsVampire = reader.ReadBool();
+			m_IsWerewolf = reader.ReadBool();
+			m_IsInVampireForm = reader.ReadBool();
+			m_IsInWerewolfForm = reader.ReadBool();
+			VampireBiteTime = reader.ReadTimeSpan();
+			m_PulaKrwi = reader.ReadInt();
+[SERIALIZE]
+//Wampir-Wilko³ak
+	writer.Write( (bool) m_IsVampire );
+	writer.Write( (bool) m_IsWerewolf );
+	writer.Write( (bool) m_IsInVampireForm );
+	writer.Write( (bool) m_IsInWerewolfForm );
+	writer.Write(VampireBiteTime);
+	writer.Write( m_PulaKrwi );
+--------------------------------------------------------------------------------------------------------------
+[W ServUO-57.6\Scripts\W£ASNE\TSystemSeasonChange - v1.1.16\Time System.cs]:
+
+////WAMPIR
+			if (hour == 6 || hour == 7 || hour == 8 || hour == 9 || hour == 10 || hour == 11 || hour == 12 || hour == 13 || hour == 14 || hour == 15 || hour == 16 || hour == 17 || hour == 18 || hour == 19 )
+			{
+
+		    PlayerMobile pm = (PlayerMobile)m;
+
+if ( pm.Region.IsPartOf(typeof(HouseRegion)) )
+{
+return;
+}
+
+			if (pm.IsVampire && pm.Alive && pm.IsInVampireForm != true && VampireSystem.SunDamage)
+			{
+				if( pm.Region.Name != "Wind" && 
+				    pm.Region.Name != "Covetous" && 
+				    pm.Region.Name != "Deceit" && 
+				    pm.Region.Name != "Despise" && 
+				    pm.Region.Name != "Destard" && 
+				    pm.Region.Name != "Hythloth" && 
+				    pm.Region.Name != "Shame" && 
+				    pm.Region.Name != "Wrong" && 
+				    pm.Region.Name != "Terathan Keep" && 
+				    pm.Region.Name != "Fire" && 
+				    pm.Region.Name != "Ice" && 
+				    pm.Region.Name != "Rock Dungeon" && 
+				    pm.Region.Name != "Spider Cave" && 
+				    pm.Region.Name != "Spectre Dungeon" && 
+				    pm.Region.Name != "Blood Dungeon" && 
+				    pm.Region.Name != "Wisp Dungeon" && 
+				    pm.Region.Name != "Ankh Dungeon" && 
+				    pm.Region.Name != "Exodus Dungeon" && 
+				    pm.Region.Name != "Sorcerer's Dungeon" && 
+				    pm.Region.Name != "Ancient Lair" && 
+				    pm.Region.Name != "Doom" && 
+				    pm.Region.Name != "Jail" )
+				{
+					pm.Stam -= ( Utility.Random( 1, 10 ) );					
+					pm.FixedParticles( 0x3709, 10, 30, 5052, EffectLayer.LeftFoot );
+					Effects.SendLocationEffect(pm.Location, pm.Map,0x371C, 20); //0x36BD,0x398C
+					pm.PrivateOverheadMessage(0, 0, false, "Masz wra¿enie, ¿e Twoja skóra siê topi", pm.NetState );					
+					pm.Say( "*ahhhh!*" );
+					pm.Damage( Utility.Random( (VampireSystem.MinSun), (VampireSystem.MaxSun) ) );
+					if (pm.IsInVampireForm)
+					{
+						switch (Utility.Random(5))
+						{
+						case 0:
+							pm.PlaySound(0x270);
+							break;
+						case 1:
+							pm.PlaySound(0x271);
+							break;
+						case 2:
+							pm.PlaySound(0x272);
+							break;
+						case 3:
+							pm.PlaySound(0x273);
+							break;
+						case 4:
+							pm.PlaySound(0x274);
+							break;
+						}	
+					}
+					else
+					{
+						pm.PlaySound( pm.Female ? 814 : 1088 );
+					}
+				}
+                        }
+}
+////WAMPIR
+-----------------------------------------------------------------------------------------
+W ServUO-57.6\Scripts\Items\Corpses\Corpse.cs:
+
+
+[PO]
+        public bool CheckLoot(Mobile from, Item item)
+        {
+---------------------------------------------------------------------------------------
+[DODAJ]
+////Wampir
+                PlayerMobile player = from as PlayerMobile;
+		if (player.IsInVampireForm)                
+		{    
+                player.SendLocalizedMessage(1010049); // You may not loot this corpse.
+                return false;
+                }
+////Wampir
+---------------------------------------------------------------------------------------
+-Spell.cs linia 734-744:
+-----------------------
+Zdefiniowano m_Caster jako PlayerMobil, ca³kowita blokada u¿ywania zaklêc w formie wilko³aka
+////Wilko³ak
+			if (m_Caster is PlayerMobile)
+			{
+				PlayerMobile pm = (PlayerMobile)m_Caster;
+				if (pm.IsInWerewolfForm == true)
+				{
+					pm.SendLocalizedMessage(1061091); // You cannot cast that spell in this form.
+					return false;
+				}
+			}
+////Wilko³ak
+----------------------------------------------------------------------------------------------------------------------------
+-ResurrectGump.cs: linia 207-213: 
+---------------------------------
+Przywracanie formy wilko³aka po wskrzeszeniu 
+////Wilko³ak
+PlayerMobile player = state.Mobile as PlayerMobile;
+if ( player.IsInWerewolfForm == true )
+{
+     player.BodyMod = 0x42E;
+}
+////Wilko³ak
+------------------------------------------------------------------------------------------------

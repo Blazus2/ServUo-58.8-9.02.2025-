@@ -1,0 +1,398 @@
+In PlayerMobile.cs (Scripts/Mobiles)
+
+[AFTER]
+		private int m_Profession;
+[ADD]
+		//Vampire
+		private bool m_IsVampire;
+		
+		[CommandProperty( AccessLevel.GameMaster )]
+		public bool IsVampire
+		{
+			get { return m_IsVampire; }
+			set { m_IsVampire = value; }
+		}
+		
+		private bool m_IsWerewolf;
+		
+		[CommandProperty( AccessLevel.GameMaster )]
+		public bool IsWerewolf
+		{
+			get { return m_IsWerewolf; }
+			set { m_IsWerewolf = value; }
+		}
+		
+		private bool m_IsInForm;
+		
+		[CommandProperty( AccessLevel.GameMaster )]
+		public bool IsInForm
+		{
+			get { return m_IsInForm; }
+			set { m_IsInForm = value; }
+		}
+        
+        private DateTime m_VampireBiteTime;
+        
+        [CommandProperty(AccessLevel.GameMaster)]
+        public TimeSpan VampireBiteTime
+        {
+            get
+            {
+                TimeSpan ts = m_VampireBiteTime - DateTime.Now;
+
+                if (ts < TimeSpan.Zero)
+                    ts = TimeSpan.Zero;
+
+                return ts;
+            }
+            set
+            {
+                try { m_VampireBiteTime = DateTime.Now + value; }
+                catch { }
+            }
+        }        
+		//Vampire
+[AFTER]
+			if( Core.ML && this.Race == Race.Elf && type == ResistanceType.Energy )
+				max += 5; //Intended to go after the 60 max from curse
+[ADD]
+			//Vampire
+            if (this.IsVampire && 50 < max && type == ResistanceType.Fire)
+                max = 50;
+            //Vampire
+[AFTER]
+		private static void OnLogin( LoginEventArgs e )
+		{
+			Mobile from = e.Mobile;
+[ADD]
+			//Vampire
+            PlayerMobile player = e.Mobile as PlayerMobile;
+            if (player.IsVampire && VampireSystem.Vampires)
+            {
+                if (VampireSystem.ShowTitles)
+				{
+					player.Title = "the Vampire";
+				}
+                player.AddStatMod(new StatMod(StatType.Str, "Vampire Str Bonus", VampireSystem.VampireStr, TimeSpan.Zero));
+                player.AddStatMod(new StatMod(StatType.Dex, "Vampire Dex Bonus", VampireSystem.VampireDex, TimeSpan.Zero));
+                player.AddStatMod(new StatMod(StatType.Int, "Vampire Int Bonus", VampireSystem.VampireInt, TimeSpan.Zero));                
+            }  
+
+			if (player.IsWerewolf && VampireSystem.Werewolves)
+            {
+                if (VampireSystem.ShowTitles)
+				{
+					player.Title = "the Werewolf";
+				}
+                player.AddStatMod(new StatMod(StatType.Str, "Werewolf Str Bonus", VampireSystem.WerewolfStr, TimeSpan.Zero));
+                player.AddStatMod(new StatMod(StatType.Dex, "Werewolf Dex Bonus", VampireSystem.WerewolfDex, TimeSpan.Zero));
+                player.AddStatMod(new StatMod(StatType.Int, "Werewolf Int Bonus", VampireSystem.WerewolfInt, TimeSpan.Zero));                
+            }  			
+            //Vampire
+[AFTER]
+		private static void OnLogout( LogoutEventArgs e )
+		{
+[ADD]
+			//Vampire
+            Mobile from = e.Mobile;
+            PlayerMobile player = e.Mobile as PlayerMobile;
+			
+			if (player.IsInForm)                
+            {    
+				player.Send(SpeedControl.Disable);
+				player.IsInForm = false;
+			}
+			
+            player.BodyMod = 0;
+            player.NameMod = null;
+            player.Title = null;
+            player.RemoveStatMod("Vampire Str Bonus");
+            player.RemoveStatMod("Vampire Dex Bonus");
+            player.RemoveStatMod("Vampire Int Bonus"); 
+			player.RemoveStatMod("Werewolf Str Bonus");
+            player.RemoveStatMod("Werewolf Dex Bonus");
+            player.RemoveStatMod("Werewolf Int Bonus");			
+            if (!VampireSystem.Vampires) 
+			{			
+                player.IsVampire = false;
+			}
+			if (!VampireSystem.Werewolves) 
+			{			
+                player.IsWerewolf = false;
+			}
+            //Vampire
+[DESERIALIZE]
+					//Vampire
+					m_IsVampire = reader.ReadBool();
+					m_IsWerewolf = reader.ReadBool();
+					m_IsInForm = reader.ReadBool();
+					VampireBiteTime = reader.ReadTimeSpan();
+[SERIALIZE]
+			//Vampire
+			writer.Write( (bool) m_IsVampire );
+			writer.Write( (bool) m_IsWerewolf );
+			writer.Write( (bool) m_IsInForm );
+			writer.Write(VampireBiteTime);
+[AFTER]
+		protected override bool OnMove( Direction d )
+		{
+[ADD]
+			//Vampire
+			DateTime now = DateTime.Now;
+			PlayerMobile player = this as PlayerMobile;
+			bool run = (d & Direction.Running) != 0;
+			if (player.IsVampire && !player.IsWerewolf && run && !player.IsInForm && player.BodyMod == 0 && !player.Mounted && !Factions.Sigil.ExistsOn(player))
+			{				
+				player.BodyMod = 0x13D;					
+				player.Send(SpeedControl.MountSpeed);
+				player.IsInForm = true;	
+			}
+			if (player.IsWerewolf && !player.IsVampire && run && !player.IsInForm && player.BodyMod == 0 && !player.Mounted && !Factions.Sigil.ExistsOn(player))
+			{
+				if (now.Hour == 18 || now.Hour == 19 || now.Hour == 20 || now.Hour == 21 || now.Hour == 22 || now.Hour == 23 || now.Hour == 0 || now.Hour == 1 || now.Hour == 2 || now.Hour == 3 || now.Hour == 4 || now.Hour == 5) 
+				{
+					player.BodyMod = 99;
+				}
+									
+				player.Send(SpeedControl.MountSpeed);
+				player.IsInForm = true;	
+			}
+			if (!run && player.IsInForm)
+			{
+				player.BodyMod = 0;                    
+                player.Send(SpeedControl.Disable);
+				player.IsInForm = false;				
+			}			
+			
+			if (player.IsVampire && player.Alive && VampireSystem.SunDamage && now.Hour >= 6 && now.Hour <= 18 && 0.10 > Utility.RandomDouble())
+			{
+				if( player.Region.Name != "Wind" && 
+                    player.Region.Name != "Covetous" && 
+                    player.Region.Name != "Deceit" && 
+                    player.Region.Name != "Despise" && 
+                    player.Region.Name != "Destard" && 
+                    player.Region.Name != "Hythloth" && 
+                    player.Region.Name != "Shame" && 
+                    player.Region.Name != "Wrong" && 
+                    player.Region.Name != "Terathan Keep" && 
+                    player.Region.Name != "Fire" && 
+                    player.Region.Name != "Ice" && 
+                    player.Region.Name != "Rock Dungeon" && 
+                    player.Region.Name != "Spider Cave" && 
+                    player.Region.Name != "Spectre Dungeon" && 
+                    player.Region.Name != "Blood Dungeon" && 
+                    player.Region.Name != "Wisp Dungeon" && 
+                    player.Region.Name != "Ankh Dungeon" && 
+                    player.Region.Name != "Exodus Dungeon" && 
+                    player.Region.Name != "Sorcerer's Dungeon" && 
+                    player.Region.Name != "Ancient Lair" && 
+                    player.Region.Name != "Doom" && 
+                    player.Region.Name != "Jail")
+				{
+					player.Stam -= ( Utility.Random( 1, 10 ) );					
+					player.FixedParticles( 0x3709, 10, 30, 5052, EffectLayer.LeftFoot );
+					Effects.SendLocationEffect(player.Location, player.Map,0x371C, 20); //0x36BD,0x398C
+					player.PrivateOverheadMessage(0, 0, false, "You feel as if your skin is melting", player.NetState );					
+					player.Say( "*ahhhh!*" );
+					player.Damage( Utility.Random( (VampireSystem.MinSun), (VampireSystem.MaxSun) ) );
+					if (player.IsInForm)
+					{
+						switch (Utility.Random(5))
+						{
+						case 0:
+							player.PlaySound(0x270);
+							break;
+						case 1:
+							player.PlaySound(0x271);
+							break;
+						case 2:
+							player.PlaySound(0x272);
+							break;
+						case 3:
+							player.PlaySound(0x273);
+							break;
+						case 4:
+							player.PlaySound(0x274);
+							break;
+						}	
+					}
+					else
+					{
+						player.PlaySound( player.Female ? 814 : 1088 );
+					}
+				}
+			}
+			//Vampire
+
+In Noterity.cs (Scripts/Misc)
+
+[AFTER]
+		public static bool Mobile_AllowHarmful( Mobile from, Mobile target )
+		{
+			if( from == null || target == null || from.AccessLevel > AccessLevel.Player || target.AccessLevel > AccessLevel.Player )
+				return true;
+
+			Map map = from.Map;
+
+			if( map != null && (map.Rules & MapRules.HarmfulRestrictions) == 0 )
+				return true; // In felucca, anything goes
+
+			BaseCreature bc = from as BaseCreature;
+
+			if( !from.Player && !(bc != null && bc.GetMaster() != null && bc.GetMaster().AccessLevel == AccessLevel.Player ) )
+			{
+				if( !CheckAggressor( from.Aggressors, target ) && !CheckAggressed( from.Aggressed, target ) && target is PlayerMobile && ((PlayerMobile)target).CheckYoungProtection( from ) )
+					return false;
+
+				return true; // Uncontrolled NPCs are only restricted by the young system
+			}
+[ADD]
+			//Vampire
+			PlayerMobile player = from as PlayerMobile;
+			PlayerMobile player2 = target as PlayerMobile;
+			if (VampireSystem.Enemies)
+			{
+				if (from is PlayerMobile && target is PlayerMobile && player.IsVampire && player2.IsWerewolf)
+				{
+					return true;			
+				}					
+				if (from is PlayerMobile && target is PlayerMobile && player.IsWerewolf && player2.IsVampire)
+				{
+					return true;
+				}
+			}
+			//Vampire
+[AFTER]
+		public static int MobileNotoriety( Mobile source, Mobile target )
+		{
+			if( Core.AOS && (target.Blessed || (target is BaseVendor && ((BaseVendor)target).IsInvulnerable) || target is PlayerVendor || target is TownCrier) )
+				return Notoriety.Invulnerable;
+
+			if( target.AccessLevel > AccessLevel.Player )
+				return Notoriety.CanBeAttacked;
+
+			if( source.Player && !target.Player && source is PlayerMobile && target is BaseCreature )
+			{
+				BaseCreature bc = (BaseCreature)target;
+
+				Mobile master = bc.GetMaster();
+
+				if ( master != null && master.AccessLevel > AccessLevel.Player )
+					return Notoriety.CanBeAttacked;
+
+				master = bc.ControlMaster;
+
+				if ( Core.ML && master != null )
+				{
+					if ( ( source == master && CheckAggressor( target.Aggressors, source ) ) || ( CheckAggressor( source.Aggressors, bc ) ) )
+						return Notoriety.CanBeAttacked;
+					else
+						return MobileNotoriety( source, master );
+				}
+
+				if( !bc.Summoned && !bc.Controlled && ((PlayerMobile)source).EnemyOfOneType == target.GetType() )
+					return Notoriety.Enemy;
+			}
+
+			if ( target.Kills >= 5 || ( target.Body.IsMonster && IsSummoned( target as BaseCreature ) && !( target is BaseFamiliar ) && !( target is ArcaneFey ) && !( target is Golem ) ) || ( target is BaseCreature && ( ( (BaseCreature)target ).AlwaysMurderer || ( (BaseCreature)target ).IsAnimatedDead ) ) )
+				return Notoriety.Murderer;
+[ADD]
+			//Vampire			
+			PlayerMobile player = source as PlayerMobile;
+			PlayerMobile player2 = target as PlayerMobile;
+			
+			if (target is PlayerMobile && player2.IsVampire)           
+				return Notoriety.Murderer;
+			
+			if (VampireSystem.Enemies)
+			{
+				if (source is PlayerMobile && target is PlayerMobile && player.IsVampire && player2.IsWerewolf)				
+					return Notoriety.Enemy;		
+									
+				if (source is PlayerMobile && target is PlayerMobile && player.IsWerewolf && player2.IsVampire)				
+					return Notoriety.Enemy;				
+			}
+			//Vampire
+
+In AOS.cs (Scripts/Misc)
+
+[AFTER]
+				totalDamage /= 10000;
+[ADD]
+				//Vampire
+				PlayerMobile player = from as PlayerMobile;
+				PlayerMobile player2 = m as PlayerMobile;
+				if (player.IsVampire && player.VampireBiteTime == TimeSpan.Zero)
+                {
+					totalDamage -= (Utility.Random((VampireSystem.MinDamageDebuff), (VampireSystem.MaxDamageDebuff)));
+					if (0.20 > Utility.RandomDouble())
+					{
+						player.PrivateOverheadMessage(0, 0, false, "You need to drink some blood...", player.NetState );
+					}								
+				}
+				
+				if (player.IsWerewolf && player2.IsVampire)
+				{
+					totalDamage += Utility.Random((VampireSystem.VamMin),(VampireSystem.VamMax));
+				}				
+				//Vampire
+
+In BaseWeapon.cs (Scripts/Items/Weapons)
+
+AFTER
+using System.Collections;
+[ADD]
+//Vampire
+using Server.Misc;
+//Vampire
+[AFTER]
+			int damage = ComputeDamage( attacker, defender );
+[ADD]
+			//Vampire
+			PlayerMobile player = attacker as PlayerMobile;
+			PlayerMobile player2 = defender as PlayerMobile;
+			if (VampireSystem.Enabled)
+			{
+				if (player.IsVampire && player2 is PlayerMobile && !player2.IsVampire && !player2.IsWerewolf && !player2.Young && VampireSystem.VampireBiteChance > Utility.RandomDouble() || player.IsVampire && player2 is PlayerMobile && !player2.IsVampire && !player2.IsWerewolf && !player2.Young && player.AccessLevel > AccessLevel.Player)
+				{
+					player.SendMessage(33, "You bite your enemy and drink his blood.");
+                    player.VampireBiteTime = TimeSpan.FromHours(2.0);
+                    Server.Items.BleedAttack.BeginBleed(player2, player);                                                
+                    player2.NonlocalOverheadMessage(MessageType.Regular, 0x21, 1060758, player2.Name);             
+                    if (VampireSystem.Enabled && VampireSystem.VampireChance > Utility.RandomDouble() || VampireSystem.Enabled && !player2.IsVampire && player.AccessLevel > AccessLevel.Player)
+                    {
+                        player2.SendMessage(33, "You feel strange...");
+                        player2.IsVampire = true;						
+                        if (VampireSystem.ShowTitles)
+						{
+							player2.Title = "the Vampire";
+						}
+                        player2.AddStatMod(new StatMod(StatType.Str, "Vampire Str Bonus", VampireSystem.VampireStr, TimeSpan.Zero));
+                        player2.AddStatMod(new StatMod(StatType.Dex, "Vampire Dex Bonus", VampireSystem.VampireDex, TimeSpan.Zero));
+                        player2.AddStatMod(new StatMod(StatType.Int, "Vampire Int Bonus", VampireSystem.VampireInt, TimeSpan.Zero));
+                    }
+				}				
+				if (player.IsWerewolf && player2 is PlayerMobile && !player2.IsWerewolf && !player2.IsVampire && !player2.Young && VampireSystem.WerewolfBiteChance > Utility.RandomDouble() || player.IsVampire && player2 is PlayerMobile && !player2.IsVampire && !player2.IsWerewolf && !player2.Young && player.AccessLevel > AccessLevel.Player)
+				{
+					player.SendMessage(33, "You bite your enemy");                    
+                    Server.Items.BleedAttack.BeginBleed(player2, player);                                                
+                    player2.NonlocalOverheadMessage(MessageType.Regular, 0x21, 1060758, player2.Name);             
+                    if (VampireSystem.Enabled && VampireSystem.WerewolfChance > Utility.RandomDouble() || VampireSystem.Enabled && player.AccessLevel > AccessLevel.Player)
+                    {
+                        player2.SendMessage(33, "You feel strange...");
+                        player2.IsWerewolf = true;						
+                        if (VampireSystem.ShowTitles)
+						{
+							player2.Title = "the Werewolf";
+						}
+                        player2.AddStatMod(new StatMod(StatType.Str, "Werewolf Str Bonus", VampireSystem.WerewolfStr, TimeSpan.Zero));
+                        player2.AddStatMod(new StatMod(StatType.Dex, "Werewolf Dex Bonus", VampireSystem.WerewolfDex, TimeSpan.Zero));
+                        player2.AddStatMod(new StatMod(StatType.Int, "Werewolf Int Bonus", VampireSystem.WerewolfInt, TimeSpan.Zero));
+                    }
+				}
+			}
+			//Vampire
+
+Then move VampireSystem.cs and VampirePotions.cs to your custom folder.
+Open VampireSystem.cs and check out setup section.
+Enjoy!
